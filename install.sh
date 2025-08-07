@@ -30,7 +30,7 @@ fi
 
 # Download from GitHub
 echo "📥 Downloading Claude Code Custom Init..."
-REPO_URL="https://github.com/[username]/claude-code-custom-init"
+REPO_URL="https://github.com/sergimiral/claude-code-custom-init"
 DOWNLOAD_URL="$REPO_URL/archive/main.zip"
 
 # Create temp directory

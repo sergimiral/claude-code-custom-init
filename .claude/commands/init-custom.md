@@ -185,7 +185,7 @@ First, try to locate a reference project with complete alfred setup:
 ```bash
 # Option 1: Download from GitHub (RECOMMENDED)
 echo "📥 Downloading alfred voice pack from GitHub..."
-curl -L https://github.com/[username]/claude-code-custom-init/archive/main.zip -o /tmp/claude-init.zip
+curl -L https://github.com/sergimiral/claude-code-custom-init/archive/main.zip -o /tmp/claude-init.zip
 unzip -q /tmp/claude-init.zip -d /tmp/
 cp -r /tmp/claude-code-custom-init-main/.claude/hooks/* .claude/hooks/
 rm -rf /tmp/claude-init.zip /tmp/claude-code-custom-init-main

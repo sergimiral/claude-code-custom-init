@@ -12,16 +12,16 @@ Complete initialization package for Claude Code with alfred voice notifications 
 
 ## Quick Install 🎯
 
-### One-Line Install (Coming Soon)
+### One-Line Install
 ```bash
-curl -sSL https://raw.githubusercontent.com/[username]/claude-code-custom-init/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh | bash
 ```
 
 ### Manual Install
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/[username]/claude-code-custom-init.git
+git clone https://github.com/sergimiral/claude-code-custom-init.git
 cd claude-code-custom-init
 ```
 
