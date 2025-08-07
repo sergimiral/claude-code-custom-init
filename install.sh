@@ -46,6 +46,13 @@ unzip -q "$TEMP_DIR/claude-init.zip" -d "$TEMP_DIR"
 echo "📂 Installing .claude directory..."
 cp -r "$TEMP_DIR/claude-code-custom-init-main/.claude" .
 
+# Copy scripts directory if it exists
+if [ -d "$TEMP_DIR/claude-code-custom-init-main/scripts" ]; then
+    echo "📜 Installing helper scripts..."
+    mkdir -p scripts
+    cp -r "$TEMP_DIR/claude-code-custom-init-main/scripts/"*.py scripts/ 2>/dev/null || true
+fi
+
 # Move template files to .claude root
 echo "📝 Setting up configuration files..."
 if [ -f ".claude/templates/settings.json" ]; then

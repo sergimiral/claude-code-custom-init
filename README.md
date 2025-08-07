@@ -12,32 +12,37 @@ Complete initialization package for Claude Code with alfred voice notifications 
 
 ## Quick Install 🎯
 
-### One-Line Install
+### One-Line Install (Recommended)
 ```bash
 curl -sSL https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh | bash
 ```
 
-### Manual Install
+This installer automatically:
+- ✅ Detects your Python version
+- ✅ Installs pygame for audio playback
+- ✅ Fixes Python 3.9+ compatibility
+- ✅ Configures alfred as default voice
+- ✅ Sets up all 55 contextual sounds
+- ✅ Installs testing and verification scripts
 
-1. Clone this repository:
-```bash
-git clone https://github.com/sergimiral/claude-code-custom-init.git
-cd claude-code-custom-init
-```
+### After Installation
 
-2. Copy the `.claude` directory to your project:
-```bash
-cp -r .claude /path/to/your/project/
-```
-
-3. In Claude Code, run:
-```
-/init-custom
-```
-
-4. Then create your project context:
+In Claude Code, run:
 ```
 /init
+```
+This creates your CLAUDE.md with project-specific context.
+
+### Manual Testing
+
+Test the alfred sounds:
+```bash
+python3 scripts/test-alfred-voice.py
+```
+
+Verify complete setup:
+```bash
+python3 scripts/verify-setup.py
 ```
 
 ## What's Included 📦
@@ -283,16 +288,17 @@ You can create your own voice pack:
 }
 ```
 
-## Command Sequence 📝
+## How to Use 📝
 
-### For New Projects:
-1. `/init-custom` - Sets up agents, hooks, and sounds
-2. `/init` - Creates CLAUDE.md with project context
-3. `/create-agent [name]` - Add custom agents as needed
+### Installation + Setup (2 steps)
+1. **Install**: Run the one-line installer above
+2. **Initialize**: Run `/init` in Claude Code
 
-### For Existing Projects:
-1. `/init-custom` - Updates missing components only
-2. `/init` (if no CLAUDE.md) - Creates project context
+That's it! Alfred sounds will play automatically.
+
+### Optional Commands
+- `/create-agent [name] [specialty]` - Create custom agents
+- `/init-custom` - Re-run setup if needed
 
 ## Contributing 🤝
 

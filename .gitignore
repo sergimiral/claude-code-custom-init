@@ -37,3 +37,14 @@ node_modules/
 .claude/hooks/voice_notifications/debug.log
 .claude/todos/
 .claude/projects/
+.claude/settings.local.json
+
+# Local development files (not for distribution)
+.python-version
+pyproject.toml
+uv.lock
+main.py
+.venv/
+test-installation.sh
+test-scenarios.sh
+install-local.sh
