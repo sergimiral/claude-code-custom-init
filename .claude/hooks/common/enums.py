@@ -12,8 +12,14 @@ Created: 2025
 Purpose: Type-safe constants for Claude Code hook system
 """
 
-from enum import StrEnum
+from enum import Enum
 from typing import Set
+
+
+class StrEnum(str, Enum):
+    """Backport of StrEnum for Python < 3.11"""
+    def __str__(self):
+        return self.value
 
 
 class HookEvent(StrEnum):

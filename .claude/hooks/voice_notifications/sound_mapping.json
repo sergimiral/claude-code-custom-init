@@ -205,5 +205,44 @@
       "default": ["system_command"]
     }
   },
+  "alfred": {
+    "patterns": {
+      ".py:Read": "starting_python_read",
+      ".py:Edit": "starting_python_edit",
+      ".ts:Read": "starting_typescript_read",
+      ".ts:Edit": "starting_typescript_edit",
+      ".tsx:Edit": "starting_typescript_edit",
+      ".json:Read": "starting_config_read",
+      ".json:Edit": "starting_config_edit",
+      "settings.json:Edit": "starting_config_edit",
+      "CLAUDE.md:Read": "starting_instructions_read",
+      "CLAUDE.md:Edit": "starting_instructions_edit",
+      "README:Read": "starting_readme_read",
+      ".log:Read": "starting_log_read",
+      "git status": "starting_git_status",
+      "git diff": "starting_git_diff",
+      "git add": "starting_git_staging",
+      "git commit": "starting_git_commit",
+      "git log": "starting_git_history"
+    },
+    "tools": {
+      "Read": "file_read",
+      "Edit": "code_edit",
+      "Write": "starting_typescript_write",
+      "Grep": "search",
+      "Glob": "search",
+      "LS": "search",
+      "Bash": "system_command",
+      "TodoWrite": "updating_todo_list",
+      "Task": "managing_tasks"
+    },
+    "events": {
+      "Stop": "work_finished",
+      "SubagentStop": "assignment_finished",
+      "Notification": "alert",
+      "UserPromptSubmit": "awaiting_response",
+      "ExitPlanMode": "plan_ready"
+    }
+  },
   "default": "error"
 }

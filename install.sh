@@ -46,6 +46,45 @@ unzip -q "$TEMP_DIR/claude-init.zip" -d "$TEMP_DIR"
 echo "📂 Installing .claude directory..."
 cp -r "$TEMP_DIR/claude-code-custom-init-main/.claude" .
 
+# Move template files to .claude root
+echo "📝 Setting up configuration files..."
+if [ -f ".claude/templates/settings.json" ]; then
+    mv ".claude/templates/settings.json" ".claude/settings.json"
+    echo "✅ Moved settings.json to .claude/"
+fi
+
+if [ -f ".claude/templates/settings.local.json" ]; then
+    mv ".claude/templates/settings.local.json" ".claude/settings.local.json"
+    echo "✅ Moved settings.local.json to .claude/"
+fi
+
+# Ensure alfred is set as the default voice
+echo "🎵 Configuring alfred voice..."
+if [ -f ".claude/settings.json" ]; then
+    # Update voice to alfred (macOS compatible sed command)
+    sed -i '' 's/"voice": "classic"/"voice": "alfred"/g' ".claude/settings.json" 2>/dev/null || \
+    sed -i 's/"voice": "classic"/"voice": "alfred"/g' ".claude/settings.json" 2>/dev/null || true
+    echo "✅ Set alfred as default voice"
+fi
+
+# Fix Python 3.9 compatibility if needed
+if [ -f "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" ]; then
+    echo "🔧 Checking Python compatibility..."
+    cp "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" scripts/ 2>/dev/null || mkdir -p scripts && cp "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" scripts/
+    
+    if command -v python3 &> /dev/null; then
+        python3 scripts/fix-python39-compatibility.py 2>/dev/null || true
+    elif command -v python &> /dev/null; then
+        python scripts/fix-python39-compatibility.py 2>/dev/null || true
+    fi
+fi
+
+# Verify hooks directory exists and has the handler
+if [ ! -f ".claude/hooks/voice_notifications/handler.py" ]; then
+    echo "⚠️  Warning: Voice notification handler not found at expected location"
+    echo "   Expected: .claude/hooks/voice_notifications/handler.py"
+fi
+
 # Copy init-custom command to global commands if possible
 if [ -d "$HOME/.claude/commands" ]; then
     echo "📝 Installing /init-custom command globally..."
@@ -56,18 +95,101 @@ fi
 echo ""
 echo "🔍 Checking dependencies..."
 
-# Check for Python
+# Check Python version
+PYTHON_CMD=""
+PYTHON_VERSION=""
+
 if command -v python3 &> /dev/null; then
-    echo "✅ Python found"
+    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    PYTHON_CMD="python"
+fi
+
+if [ -n "$PYTHON_CMD" ]; then
+    echo "✅ Python $PYTHON_VERSION found"
     
-    # Check for pygame
-    if python3 -c "import pygame" 2>/dev/null; then
+    # Check if Python version is 3.9+
+    if [ "$(echo "$PYTHON_VERSION >= 3.9" | bc)" -eq 0 ]; then
+        echo "⚠️  Python 3.9+ required for voice notifications (found $PYTHON_VERSION)"
+    fi
+    
+    # Check for pygame - try multiple methods
+    PYGAME_INSTALLED=false
+    
+    # Method 1: Direct import
+    if $PYTHON_CMD -c "import pygame" 2>/dev/null; then
+        PYGAME_INSTALLED=true
+    # Method 2: Check in virtual environment if it exists
+    elif [ -f ".venv/bin/python" ] && .venv/bin/python -c "import pygame" 2>/dev/null; then
+        PYGAME_INSTALLED=true
+        echo "ℹ️  pygame found in virtual environment"
+    fi
+    
+    if [ "$PYGAME_INSTALLED" = true ]; then
         echo "✅ pygame found"
     else
-        echo "⚠️  pygame not found. Install with: pip install pygame or uv add pygame"
+        echo "🎵 pygame not found - required for alfred voice notifications"
+        echo ""
+        echo "Installing pygame..."
+        
+        # Try to install pygame with available tools
+        INSTALL_SUCCESS=false
+        
+        # Method 1: Try uv (preferred)
+        if command -v uv &> /dev/null; then
+            echo "🔧 Installing with uv..."
+            
+            # Initialize Python project if needed
+            if [ ! -f "pyproject.toml" ]; then
+                PROJECT_NAME=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+                uv init --name "$PROJECT_NAME" >/dev/null 2>&1 || true
+            fi
+            
+            # Add pygame
+            if uv add pygame >/dev/null 2>&1; then
+                echo "✅ pygame installed with uv"
+                INSTALL_SUCCESS=true
+            fi
+        fi
+        
+        # Method 2: Try pip if uv failed
+        if [ "$INSTALL_SUCCESS" = false ] && command -v pip3 &> /dev/null; then
+            echo "🔧 Installing with pip..."
+            if pip3 install pygame --user >/dev/null 2>&1; then
+                echo "✅ pygame installed with pip"
+                INSTALL_SUCCESS=true
+            fi
+        fi
+        
+        # Method 3: Try pip without pip3
+        if [ "$INSTALL_SUCCESS" = false ] && command -v pip &> /dev/null; then
+            echo "🔧 Installing with pip..."
+            if pip install pygame --user >/dev/null 2>&1; then
+                echo "✅ pygame installed with pip"
+                INSTALL_SUCCESS=true
+            fi
+        fi
+        
+        if [ "$INSTALL_SUCCESS" = false ]; then
+            echo ""
+            echo "⚠️  Could not install pygame automatically."
+            echo ""
+            echo "Please install manually with one of:"
+            echo "  • uv add pygame (recommended)"
+            echo "  • pip install pygame"
+            echo "  • pip3 install pygame"
+            echo "  • conda install pygame (if using conda)"
+            echo ""
+            echo "Note: pygame is required for alfred voice notifications to work"
+        fi
     fi
 else
-    echo "⚠️  Python not found. Voice notifications require Python with pygame."
+    echo "❌ Python not found!"
+    echo ""
+    echo "Python 3.9+ is required for voice notifications."
+    echo "Install Python from: https://www.python.org/downloads/"
 fi
 
 # Check for uv (optional but recommended)

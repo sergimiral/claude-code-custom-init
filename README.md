@@ -64,12 +64,19 @@ cp -r .claude /path/to/your/project/
 
 ## Configuration 🔧
 
-### For Alfred Voice
-The alfred voice pack requires:
-1. `mode: "sounds"` (not "voice")
-2. `voice: "alfred"` (lowercase)
+### Understanding Voice Modes
 
-Example `settings.json`:
+Claude Code supports two notification modes:
+
+#### 1. Sound Packs Mode (`mode: "sounds"`)
+Pre-recorded MP3 files with contextual sounds for different operations.
+
+**Available sound packs:**
+- **alfred**: 55+ contextual sounds (Python, TypeScript, git operations, etc.)
+- **jarvis**: (if installed)
+- **ding**: (if installed)
+
+**Configuration for alfred:**
 ```json
 {
   "notifications": {
@@ -80,38 +87,168 @@ Example `settings.json`:
 }
 ```
 
-### Dependencies
-- **Required**: Python with pygame for sound playback
-- **Recommended**: uv package manager
+#### 2. System Voice Mode (`mode: "voice"`)
+Uses macOS text-to-speech voices to speak notifications.
 
-Install pygame:
-```bash
-# With uv (recommended)
-uv add pygame
+**Available system voices** (check yours with `say -v '?'`):
+- **Standard**: Daniel, Samantha, Alex, Karen, Moira, Fiona
+- **Premium**: Zoe, Jamie (require macOS download)
+- **International**: Amélie (French), Daria (Russian), etc.
 
-# With pip
-pip install pygame
+**Configuration for system voice:**
+```json
+{
+  "notifications": {
+    "mode": "voice",
+    "voice": "Zoe",  // or "Daniel", "Samantha", etc.
+    "sound_theme": "default"
+  }
+}
 ```
+
+**To download premium voices on macOS:**
+1. System Settings → Accessibility → Spoken Content
+2. System Voice → Manage Voices...
+3. Download Zoe (Premium) or other voices
+
+### Quick Switch Examples
+
+**For contextual sounds (recommended):**
+```json
+{ "mode": "sounds", "voice": "alfred" }
+```
+
+**For spoken notifications:**
+```json
+{ "mode": "voice", "voice": "Zoe" }  // Premium voice
+{ "mode": "voice", "voice": "Daniel" }  // Standard voice
+```
+
+## System Requirements 📋
+
+### Minimum Requirements
+- **Python**: 3.9 or higher
+- **pygame**: For audio playback (auto-installed by installer)
+- **Operating System**: macOS, Linux, or Windows
+- **Claude Code**: Latest version
+
+### Recommended Setup
+- **Python**: 3.11+ for best compatibility
+- **Package Manager**: uv (for fast, reliable package management)
+- **Memory**: 100MB free space for sounds and scripts
+
+## Installation Details 🛠️
+
+The installer automatically:
+1. ✅ Detects Python version and warns if < 3.9
+2. ✅ Installs pygame using available package managers (uv, pip)
+3. ✅ Fixes Python 3.9 compatibility issues
+4. ✅ Configures alfred as the default voice
+5. ✅ Sets up all 55 contextual sounds
+6. ✅ Creates scripts for testing and verification
 
 ## Troubleshooting 🔍
 
-### Alfred Voice Not Working?
+### Common Issues and Solutions
 
-1. **Check handler.py version**:
+#### 1. No Sound Playing
+**Symptom**: Script says sounds play but you hear nothing
+
+**Solutions**:
 ```bash
-grep "alfred" .claude/hooks/voice_notifications/handler.py
+# Check pygame is installed
+python3 -c "import pygame; print('pygame installed')"
+
+# If not installed, install manually:
+uv add pygame  # or pip install pygame
+
+# Test sounds directly
+python3 scripts/test-alfred-voice.py
 ```
-If no results, you need the advanced handler.
 
-2. **Verify settings.json**:
-- Must use `"mode": "sounds"` (not "voice")
-- Must use `"voice": "alfred"` (lowercase)
+**Check system volume** and ensure it's not muted.
 
-3. **Check sound files**:
+#### 2. Python Version Issues
+**Symptom**: `SyntaxError: invalid syntax` or `ImportError: cannot import name 'StrEnum'`
+
+**Solution**: Run the compatibility fixer:
 ```bash
-ls .claude/hooks/voice_notifications/sounds/alfred/ | wc -l
+python3 scripts/fix-python39-compatibility.py
 ```
-Should show 55 files.
+
+#### 3. Handler Not Supporting Alfred
+**Symptom**: Always plays default sound instead of alfred voices
+
+**Check handler.py has alfred support**:
+```bash
+grep "custom_voice_packs" .claude/hooks/voice_notifications/handler.py
+```
+
+If missing, the handler needs updating. Re-run installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh | bash
+```
+
+#### 4. Settings Configuration Wrong
+**Symptom**: Alfred voice not activating
+
+**Verify settings.json**:
+```bash
+cat .claude/settings.json | grep -A 3 notifications
+```
+
+Should show:
+```json
+"notifications": {
+  "mode": "sounds",
+  "voice": "alfred",
+```
+
+**Fix if needed**:
+```bash
+sed -i '' 's/"voice": ".*"/"voice": "alfred"/g' .claude/settings.json
+```
+
+#### 5. Missing Sound Files
+**Symptom**: Some sounds don't play
+
+**Verify all 55 files exist**:
+```bash
+ls .claude/hooks/voice_notifications/sounds/alfred/*.mp3 | wc -l
+```
+
+Should output: `55`
+
+If missing, reinstall:
+```bash
+rm -rf .claude
+curl -sSL https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh | bash
+```
+
+### Debug Mode
+
+Enable debug logging to troubleshoot:
+```bash
+# Watch debug log in real-time
+tail -f .claude/hooks/voice_notifications/debug.log
+```
+
+Look for:
+- `🎵 Attempting to play:` - Shows what's being tried
+- `✅ Successfully played:` - Sound played correctly
+- `❌ pygame not available:` - pygame installation issue
+- `⚠️ Sound file not found:` - Missing sound file
+
+### Verification Script
+
+Run the comprehensive test:
+```bash
+# Test all alfred sounds
+python3 scripts/test-alfred-voice.py
+
+# Verify setup (coming soon)
+python3 scripts/verify-setup.py
+```
 
 ## Project Structure 🏗️
 

@@ -61,12 +61,13 @@ from common import (
 )
 
 # Type aliases for complex recurring types
-type SoundMapping = dict[str, dict[str, str] | str | list[str]]
-type ToolInput = dict[str, str]
-type HookData = dict[str, str | dict | None]
-type SoundVariations = str | list[str]
+from typing import Union, Dict, List, Any, Optional
+SoundMapping = Dict[str, Union[Dict[str, str], str, List[str]]]
+ToolInput = Dict[str, str]
+HookData = Dict[str, Union[str, dict, None]]
+SoundVariations = Union[str, List[str]]
 
-def setup_module_logger(module_name: str, log_file: Path | None = None) -> logging.Logger:
+def setup_module_logger(module_name: str, log_file: Optional[Path] = None) -> logging.Logger:
     """Set up a module-specific logger with file handler.
     
     Args:
@@ -119,7 +120,7 @@ def load_sound_mapping() -> SoundMapping:
             "default": "task_complete"
         }
 
-def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: ToolName | None = None, tool_input: ToolInput | None = None, input_data: HookData | None = None, sound_theme: str = "default") -> str:
+def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional[ToolName] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default") -> str:
     """Map Claude's hook/tool names to context-aware sound file names with variation support."""
     mapping = load_sound_mapping()
     
@@ -166,7 +167,7 @@ def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: ToolName
     logger.warning(f"Default fallback: '{sound_name}' for hook='{hook_event_name}', tool='{tool_name}'")
     return sound_name
 
-def _get_context_sound(mapping: SoundMapping, tool_name: ToolName, tool_input: ToolInput) -> str | None:
+def _get_context_sound(mapping: SoundMapping, tool_name: ToolName, tool_input: ToolInput) -> Optional[str]:
     """Get context-specific sound based on file extensions, filenames, or command patterns."""
     context_patterns = mapping.get("context_patterns", {})
     
@@ -180,7 +181,7 @@ def _get_context_sound(mapping: SoundMapping, tool_name: ToolName, tool_input: T
     
     return None
 
-def _get_file_operation_sound(context_patterns: dict[str, dict], tool_name: ToolName, tool_input: ToolInput) -> str | None:
+def _get_file_operation_sound(context_patterns: Dict[str, dict], tool_name: ToolName, tool_input: ToolInput) -> Optional[str]:
     """Get sound for file operations based on file extension or filename."""
     file_ops = context_patterns.get("file_operations", {})
     
@@ -219,7 +220,7 @@ def _get_file_operation_sound(context_patterns: dict[str, dict], tool_name: Tool
     
     return None
 
-def _get_bash_command_sound(context_patterns: dict[str, dict], tool_input: ToolInput) -> str | None:
+def _get_bash_command_sound(context_patterns: Dict[str, dict], tool_input: ToolInput) -> Optional[str]:
     """Get sound for bash commands based on command patterns."""
     bash_commands = context_patterns.get("bash_commands", {})
     command = tool_input.get(InputKey.COMMAND.value, "")
@@ -254,7 +255,7 @@ def _get_bash_command_sound(context_patterns: dict[str, dict], tool_input: ToolI
     
     return None
 
-def _get_notification_sound(mapping: SoundMapping, input_data: HookData) -> str | None:
+def _get_notification_sound(mapping: SoundMapping, input_data: HookData) -> Optional[str]:
     """Get context-specific sound for Notification events based on message content."""
     notification_config = mapping["hook_events"].get(HookEvent.NOTIFICATION.value, {})
     
@@ -282,7 +283,7 @@ def _get_notification_sound(mapping: SoundMapping, input_data: HookData) -> str 
     
     return None
 
-def _get_theme_sound(config: dict | str | list, sound_theme: str) -> str | None:
+def _get_theme_sound(config: Union[dict, str, list], sound_theme: str) -> Optional[str]:
     """Extract sound name for specific theme from mapping config."""
     if isinstance(config, dict):
         # Theme-aware config: {"default": "success", "classic": "task_complete"}
@@ -304,7 +305,7 @@ def _select_variation(sounds: SoundVariations) -> str:
     return "task_complete"
 
 # Legacy wrapper for backward compatibility
-def get_sound_name(hook_event_name: str, tool_name: str | None = None, tool_input: ToolInput | None = None, input_data: HookData | None = None) -> str:
+def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None) -> str:
     """Legacy wrapper for get_context_aware_sound_name."""
     # Convert string parameters to enums safely
     hook_event_enum = get_hook_event({InputKey.HOOK_EVENT_NAME.value: hook_event_name})
@@ -382,19 +383,25 @@ def play_voice_sound(voice: str = "ding", sound_name: str = "task_complete", mod
         return
     
     # Check if this is a system voice (not our custom file-based voices)
-    system_voices = ["albert", "daniel", "samantha", "alex", "anna", "karen", "moira", "fiona", 
-                    "alice", "amélie", "amira", "carmit", "damayanti", "daria", "eddy"]
+    # First check if it's one of our known sound packs
+    sound_packs = ["alfred", "jarvis", "ding"]
     
-    if voice.lower() in system_voices:
+    # If it's not a sound pack and mode is "voice", try it as a system voice
+    # This allows ALL system voices including premium ones like Zoe
+    if voice.lower() not in sound_packs and mode == "voice":
         if play_system_voice(voice, sound_name):
             return  # Success with system voice
         else:
             logger.warning(f"System voice {voice} failed, falling back to file-based sounds")
     
-    # For sounds mode, use configured sound (don't override voice setting)
+    # For sounds mode, check if using a custom voice pack like alfred
     if mode == "sounds":
-        # Keep the user's voice setting but use generic sound name
-        sound_name = "notification_sound"  # Generic sound name for simple audio
+        # Custom voice packs (alfred, jarvis, etc.) use their own sounds
+        custom_voice_packs = ["alfred", "jarvis", "ding"]
+        if voice not in custom_voice_packs:
+            # For theme-based sounds, use generic sound name
+            sound_name = "notification_sound"  # Generic sound name for simple audio
+        # Otherwise keep the context-aware sound_name for custom voice packs
     
     try:
         import pygame
@@ -403,41 +410,65 @@ def play_voice_sound(voice: str = "ding", sound_name: str = "task_complete", mod
         # Get script directory and build sound path
         script_dir = Path(__file__).parent
         
-        # For sounds mode, look in theme directories
+        # For sounds mode, look in appropriate directories
         if mode == "sounds":
-            # Try theme-based sound lookup first
-            theme_mp3 = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.mp3"
-            theme_wav = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.wav"
+            custom_voice_packs = ["alfred", "jarvis", "ding"]
             
-            if theme_mp3.exists():
-                sound_path = theme_mp3
-                logger.debug(f"Found theme sound file: {sound_path}")
-            elif theme_wav.exists():
-                sound_path = theme_wav
-                logger.debug(f"Found theme sound file (wav): {sound_path}")
-            else:
-                logger.warning(f"Theme sound files not found: {theme_mp3} OR {theme_wav}")
+            if voice in custom_voice_packs:
+                # Look in voice-specific directory for custom voice packs
+                voice_mp3 = script_dir / "sounds" / voice / f"{sound_name}.mp3"
+                voice_wav = script_dir / "sounds" / voice / f"{sound_name}.wav"
                 
-                # Fallback to classic theme
-                classic_mp3 = script_dir / "sounds" / "themes" / "classic" / f"{voice}.mp3"
-                classic_wav = script_dir / "sounds" / "themes" / "classic" / f"{voice}.wav"
-                
-                if classic_mp3.exists():
-                    sound_path = classic_mp3
-                    logger.warning(f"Using classic theme fallback: {sound_path}")
-                elif classic_wav.exists():
-                    sound_path = classic_wav
-                    logger.warning(f"Using classic theme fallback (wav): {sound_path}")
+                if voice_mp3.exists():
+                    sound_path = voice_mp3
+                elif voice_wav.exists():
+                    sound_path = voice_wav
                 else:
-                    # Final fallback to original chime
-                    chime_path = script_dir / "sounds" / "chime.mp3"
-                    if chime_path.exists():
-                        sound_path = chime_path
-                        logger.warning(f"Using original chime fallback: {sound_path}")
+                    # Fallback to theme if voice-specific sound not found
+                    theme_mp3 = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.mp3"
+                    theme_wav = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.wav"
+                    
+                    if theme_mp3.exists():
+                        sound_path = theme_mp3
+                    elif theme_wav.exists():
+                        sound_path = theme_wav
                     else:
-                        logger.error(f"All fallbacks failed - tried: {theme_mp3}, {theme_wav}, {classic_mp3}, {classic_wav}, {chime_path}")
-                        print("\a", end="", flush=True)  # Terminal bell fallback
-                        return
+                        logger.warning(f"⚠️ Sound file not found for {voice}/{sound_name}, using default")
+                        sound_path = script_dir / "sounds" / "themes" / "default" / "notification_sound.wav"
+            else:
+                # Try theme-based sound lookup for non-voice-pack modes
+                theme_mp3 = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.mp3"
+                theme_wav = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.wav"
+                
+                if theme_mp3.exists():
+                    sound_path = theme_mp3
+                    logger.debug(f"Found theme sound file: {sound_path}")
+                elif theme_wav.exists():
+                    sound_path = theme_wav
+                    logger.debug(f"Found theme sound file (wav): {sound_path}")
+                else:
+                    logger.warning(f"Theme sound files not found: {theme_mp3} OR {theme_wav}")
+                    
+                    # Fallback to classic theme
+                    classic_mp3 = script_dir / "sounds" / "themes" / "classic" / f"{voice}.mp3"
+                    classic_wav = script_dir / "sounds" / "themes" / "classic" / f"{voice}.wav"
+                    
+                    if classic_mp3.exists():
+                        sound_path = classic_mp3
+                        logger.warning(f"Using classic theme fallback: {sound_path}")
+                    elif classic_wav.exists():
+                        sound_path = classic_wav
+                        logger.warning(f"Using classic theme fallback (wav): {sound_path}")
+                    else:
+                        # Final fallback to original chime
+                        chime_path = script_dir / "sounds" / "chime.mp3"
+                        if chime_path.exists():
+                            sound_path = chime_path
+                            logger.warning(f"Using original chime fallback: {sound_path}")
+                        else:
+                            logger.error(f"All fallbacks failed - tried: {theme_mp3}, {theme_wav}, {classic_mp3}, {classic_wav}, {chime_path}")
+                            print("\a", end="", flush=True)  # Terminal bell fallback
+                            return
         else:
             # Voice mode: Try specific voice/sound combination (mp3 then wav)
             mp3_path = script_dir / "sounds" / voice / f"{sound_name}.mp3"
