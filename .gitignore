@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+debug.log
+
+# Package managers
+node_modules/
+.npm
+.yarn
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Claude Code specific
+.claude/hooks/voice_notifications/debug.log
+.claude/todos/
+.claude/projects/

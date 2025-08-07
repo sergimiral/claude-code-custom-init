@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(plutil:*)",
+      "Bash(say:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(uv init:*)",
+      "Bash(uv add:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}
