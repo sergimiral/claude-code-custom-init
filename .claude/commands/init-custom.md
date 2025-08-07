@@ -435,14 +435,34 @@ Read file_path=".claude/hooks/voice_notifications/sound_mapping.json"
   3. Manual fix: Add alfred support to handler by implementing context-aware pattern matching
   4. Fallback: Use "default" or "classic" themes until alfred handler is available
 
-### 7. Install Dependencies
+### 7. Configure MCP Servers (Optional)
+
+Check if project needs MCP configuration:
+```bash
+# Check if .mcp.json exists
+Bash command="[ -f .mcp.json ] && echo 'MCP_EXISTS' || echo 'MCP_MISSING'"
+```
+
+**If MCP_MISSING and it's a new project**:
+- Ask: "Would you like to configure project-specific MCP servers? (y/n)"
+- If yes, copy template:
+  ```bash
+  cp .claude/templates/mcp.json .mcp.json
+  ```
+- Inform user: "Created .mcp.json template. Edit it to add project-specific MCP servers."
+- Note: "Global MCP servers (like playwright) are already configured in ~/.claude/settings.json"
+
+**If MCP_EXISTS**:
+- Say: "✓ Project MCP configuration found (.mcp.json)"
+
+### 8. Install Dependencies
 
 Ensure pygame is installed for voice notifications:
 ```bash
 uv add pygame
 ```
 
-### 8. Analyze and Suggest
+### 9. Analyze and Suggest
 
 After setup, analyze the project:
 
@@ -460,7 +480,7 @@ After setup, analyze the project:
 - Mention `/build` command for quick starts
 - Suggest creating first agent with `/create-agent`
 
-### 9. Final Message
+### 10. Final Message
 
 **For Fresh Install**:
 ```

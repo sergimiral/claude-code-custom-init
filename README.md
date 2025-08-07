@@ -61,6 +61,7 @@ Create a new project with Claude Code Custom Init pre-configured:
 - [Commands Reference](docs/commands.md) - All available commands
 - [Personas Guide](docs/personas.md) - Understanding personas
 - [Voice Configuration](docs/voice-configuration.md) - Setting up notifications
+- [MCP Configuration](docs/mcp-configuration.md) - Setting up MCP servers
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 🎯 Example Usage
