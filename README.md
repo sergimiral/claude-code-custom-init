@@ -1,73 +1,91 @@
-# Claude Code Custom Init 🚀
+# Claude Code Custom Init
 
-Complete initialization package for Claude Code with alfred voice notifications and standard agents.
+Supercharge your Claude Code experience with the SuperClaude framework - intelligent personas, smart commands, and voice notifications.
 
-## Features ✨
+## 🚀 Quick Start
 
-- **5 Standard Agents**: PRD writer, system architect, UI designer, Python backend dev, React TypeScript specialist
-- **Alfred Voice Pack**: 55+ contextual sounds for different operations
-- **Smart Update Mode**: Won't overwrite your existing customizations
-- **Complete Hook System**: Voice notifications with context-aware sounds
-- **Custom Commands**: `/init-custom` and `/create-agent` commands
+Run these three commands in your project directory:
 
-## Quick Install 🎯
-
-### One-Line Install (Recommended)
 ```bash
-curl -sSL https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh | bash
+curl -O https://raw.githubusercontent.com/sergimiral/claude-code-custom-init/main/install.sh
+chmod +x install.sh
+./install.sh .
 ```
 
-This installer automatically:
-- ✅ Detects your Python version
-- ✅ Installs pygame for audio playback
-- ✅ Fixes Python 3.9+ compatibility
-- ✅ Configures alfred as default voice
-- ✅ Sets up all 55 contextual sounds
-- ✅ Installs testing and verification scripts
+That's it! Open Claude Code and run `/init-custom` to verify the installation.
 
-### After Installation
+## ✨ What You Get
 
-In Claude Code, run:
-```
-/init
-```
-This creates your CLAUDE.md with project-specific context.
+- **🧠 11 Intelligent Personas** - Auto-activated specialists for different domains
+- **🎯 Smart Commands** - `/analyze`, `/build`, `/implement`, `/improve` and more  
+- **🎵 Voice Notifications** - Alfred voice pack with 55+ contextual sounds
+- **⚡ Performance Optimizations** - Token-efficient modes and parallel processing
+- **🔧 MCP Integration** - Enhanced capabilities with Context7, Sequential, Magic, and Playwright
 
-### Manual Testing
+## 📖 Features
 
-Test the alfred sounds:
+### Smart Commands
+- `/analyze` - Deep code analysis with architecture insights
+- `/build` - Intelligent project building with framework detection
+- `/implement` - Feature implementation with persona activation
+- `/improve` - Code optimization and quality enhancement
+- [See all commands →](docs/commands.md)
+
+### Intelligent Personas
+- **Architect** - System design and scalability
+- **Frontend** - UI/UX and accessibility
+- **Backend** - APIs and reliability
+- **Security** - Vulnerability assessment
+- [See all personas →](docs/personas.md)
+
+### Voice Notifications
+The alfred voice pack provides audio feedback:
+- Task completion announcements
+- Error notifications
+- Progress updates with 55+ contextual sounds
+
+## 🛠️ Installation Options
+
+### For Existing Projects
+Use the quick start commands above.
+
+### For New Projects
+Create a new project with Claude Code Custom Init pre-configured:
 ```bash
-python3 scripts/test-alfred-voice.py
+./install.sh /path/to/new-project
 ```
 
-Verify complete setup:
+## 📚 Documentation
+
+- [Installation Guide](docs/installation.md) - Detailed setup instructions
+- [Commands Reference](docs/commands.md) - All available commands
+- [Personas Guide](docs/personas.md) - Understanding personas
+- [Voice Configuration](docs/voice-configuration.md) - Setting up notifications
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
+## 🎯 Example Usage
+
 ```bash
-python3 scripts/verify-setup.py
+# Analyze your entire codebase
+/analyze --comprehensive
+
+# Build with optimal settings
+/build --optimize
+
+# Implement a new feature
+/implement user authentication system
+
+# Improve code quality
+/improve --focus performance
 ```
 
-## What's Included 📦
+## 🔧 Requirements
 
-### Agents
-- **CLAUDE.md**: Global agent configuration
-- **prd-writer.md**: Product Requirements Document specialist
-- **system-architect.md**: System design and architecture expert
-- **ui-designer.md**: UI/UX design specialist
-- **python-backend-dev.md**: Python backend development expert
-- **react-typescript-specialist.md**: React and TypeScript expert
+- Claude Code (latest version)
+- Python 3.9+ (for voice notifications)
+- Git (for project detection)
 
-### Alfred Voice Pack
-55+ contextual sounds including:
-- File operations (read, edit, write)
-- Git operations (status, commit, diff)
-- Task management (start, complete, update)
-- Alerts and notifications
-- Language-specific sounds (Python, TypeScript, etc.)
-
-### Commands
-- **/init-custom**: Smart initialization that detects existing setups
-- **/create-agent**: Create custom agents for your specific needs
-
-## Configuration 🔧
+## Configuration
 
 ### Understanding Voice Modes
 
@@ -318,6 +336,19 @@ MIT License - See LICENSE file for details
 
 For issues or questions, please open an issue on GitHub.
 
+## 📝 License
+
+Open source - feel free to use, modify, and share!
+
+## 🤝 Contributing
+
+Contributions welcome! Feel free to submit issues and pull requests.
+
+## 📞 Support
+
+- [GitHub Issues](https://github.com/sergimiral/claude-code-custom-init/issues)
+- [Documentation](docs/)
+
 ---
 
-Made with ❤️ for the Claude Code community
+Created by [@sergimiral](https://github.com/sergimiral)
