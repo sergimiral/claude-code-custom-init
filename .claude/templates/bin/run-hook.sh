@@ -23,4 +23,3 @@ else
     echo "Please ensure Python is installed or run install.sh again" >&2
     exit 1
 fi
-EOF < /dev/null
