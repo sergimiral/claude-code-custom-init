@@ -4,15 +4,30 @@
     "deny": []
   },
   "notifications": {
-    "mode": "sounds",
-    "voice": "default",
-    "sound_theme": "default",
+    "mode": "soundpack",
+    "soundpack": "alfred",
+    "voice_macos": "daniel",
+    "voice_elevenlabs": "",
+    "voice_openai": "",
     "quiet_hours": false,
-    "_comment": "default uses generic sounds - use voice='alfred' for context-aware clips (lowercase)",
-    "_available_modes": "voice (full speech), sounds (simple audio), off (silent)",
-    "_available_themes": "default (generic sounds), classic (ding/chime), system (macOS)",
-    "_available_voices_for_mode_voice": "Zoe (Premium), Jamie (Premium), albert, daniel, samantha",
-    "_available_sound_packs_for_mode_sounds": "alfred (context-aware clips), default, classic"
+    "_schema_version": "3.0",
+    "_comment": "Clean single-mode architecture with graceful fallbacks",
+    "_modes": {
+      "default": "Simple notification sounds",
+      "soundpack": "Custom sound packs (alfred, jarvis, etc.)",
+      "voice_soundpack": "Sound pack with voice fallback", 
+      "voice_macos": "macOS built-in TTS voices",
+      "voice_elevenlabs": "ElevenLabs AI voices (requires API key)",
+      "voice_openai": "OpenAI TTS voices (requires API key)",
+      "off": "Silent mode"
+    },
+    "_config_fields": {
+      "soundpack": "Sound pack name (alfred, jarvis, default, classic)",
+      "voice_macos": "macOS voice name (daniel, samantha, alex, albert)",
+      "voice_elevenlabs": "ElevenLabs voice ID (requires API setup)",
+      "voice_openai": "OpenAI voice name (nova, alloy, echo, etc.)"
+    },
+    "_fallback_chain": "Each mode gracefully falls back to simpler modes if config missing or fails"
   },
   "hooks": {
     "Stop": [

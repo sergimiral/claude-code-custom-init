@@ -120,7 +120,25 @@ def load_sound_mapping() -> SoundMapping:
             "default": "task_complete"
         }
 
-def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional[ToolName] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", voice: str = "alfred") -> str:
+def parse_notification_config(config: dict) -> dict:
+    """Parse notification config with clean single-mode system."""
+    # Get the mode (with safe default)
+    mode = config.get("mode", "default")
+    
+    # Extract configuration fields (all optional with safe defaults)
+    result = {
+        "mode": mode,
+        "soundpack": config.get("soundpack", "default"),
+        "voice_macos": config.get("voice_macos", "daniel"), 
+        "voice_elevenlabs": config.get("voice_elevenlabs", ""),
+        "voice_openai": config.get("voice_openai", ""),
+        "quiet_hours": config.get("quiet_hours", False)
+    }
+    
+    logger.debug(f"Using clean mode system v3.0: mode={mode}")
+    return result
+
+def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional[ToolName] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", sound_pack: str = "default") -> str:
     """Map Claude's hook/tool names to context-aware sound file names with variation support."""
     mapping = load_sound_mapping()
     
@@ -131,12 +149,12 @@ def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional
             logger.debug(f"Notification message mapping: '{notification_sound}'")
             return notification_sound
     
-    # Only try context-aware patterns for custom voice packs (alfred, jarvis, etc.)
-    custom_voice_packs = ["alfred", "jarvis", "ding"]
-    if voice in custom_voice_packs and hook_event_name in [HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE] and tool_name and tool_input:
+    # Only try context-aware patterns for custom sound packs (alfred, jarvis, etc.)
+    custom_sound_packs = ["alfred", "jarvis"]
+    if sound_pack in custom_sound_packs and hook_event_name in [HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE] and tool_name and tool_input:
         context_sound = _get_context_sound(mapping, tool_name, tool_input)
         if context_sound:
-            logger.debug(f"Context-aware mapping ({voice}): {hook_event_name} + {tool_name} -> '{context_sound}'")
+            logger.debug(f"Context-aware mapping ({sound_pack}): {hook_event_name} + {tool_name} -> '{context_sound}'")
             return context_sound
         else:
             logger.debug(f"No context pattern found for {tool_name} with {hook_event_name}, falling back to tool mapping")
@@ -306,7 +324,7 @@ def _select_variation(sounds: SoundVariations) -> str:
     return "task_complete"
 
 # Legacy wrapper for backward compatibility
-def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", voice: str = "alfred") -> str:
+def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", sound_pack: str = "default") -> str:
     """Legacy wrapper for get_context_aware_sound_name."""
     # Convert string parameters to enums safely
     hook_event_enum = get_hook_event({InputKey.HOOK_EVENT_NAME.value: hook_event_name})
@@ -317,7 +335,7 @@ def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_i
         logger.warning(f"Unknown hook event: {hook_event_name}, using Stop as fallback")
         hook_event_enum = HookEvent.STOP
     
-    return get_context_aware_sound_name(hook_event_enum, tool_name_enum, tool_input, input_data, sound_theme, voice)
+    return get_context_aware_sound_name(hook_event_enum, tool_name_enum, tool_input, input_data, sound_theme, sound_pack)
 
 def play_system_voice(voice: str, message: str) -> bool:
     """
@@ -366,133 +384,135 @@ def play_system_voice(voice: str, message: str) -> bool:
         logger.error(f"❌ System voice error: {e}")
         return False
 
-def play_voice_sound(voice: str = "ding", sound_name: str = "task_complete", mode: str = "voice", sound_theme: str = "default") -> None:
+def play_notification(mode: str, config: dict, sound_name: str = "task_complete") -> None:
     """
-    Play a voice sound using pygame library with graceful fallbacks.
+    Play notification with clean single-mode system and graceful fallbacks.
     
     Args:
-        voice: Voice character (alfred, jarvis, ding) or system voice name
+        mode: Notification mode (default, soundpack, voice_soundpack, voice_macos, voice_elevenlabs, voice_openai, off)
+        config: Configuration dict with mode-specific settings
         sound_name: Sound file name from mapping (task_complete, file_read, etc.)
-        mode: Notification mode (voice, sounds, off)
-        sound_theme: Sound theme for sounds mode (default, classic, system)
     """
-    logger.info(f"🎵 Attempting to play: mode={mode}, voice={voice}, sound={sound_name}, theme={sound_theme}")
+    logger.info(f"🎵 Notification: mode={mode}, sound={sound_name}, config={config}")
     
-    # Handle different modes
+    # Handle silent mode
     if mode == "off":
         logger.info("🔇 Silent mode - no audio")
         return
     
-    # Check if this is a system voice (not our custom file-based voices)
-    # First check if it's one of our known sound packs
-    sound_packs = ["alfred", "jarvis", "ding"]
+    # Try the primary mode first, with graceful fallbacks
+    if mode == "voice_elevenlabs":
+        if try_elevenlabs_voice(config.get("voice_elevenlabs", ""), sound_name):
+            return
+        logger.warning("ElevenLabs failed, falling back to macOS voice")
+        mode = "voice_macos"  # Fallback
     
-    # If it's not a sound pack and mode is "voice", try it as a system voice
-    # This allows ALL system voices including premium ones like Zoe
-    if voice.lower() not in sound_packs and mode == "voice":
-        if play_system_voice(voice, sound_name):
-            return  # Success with system voice
-        else:
-            logger.warning(f"System voice {voice} failed, falling back to file-based sounds")
+    if mode == "voice_openai":
+        if try_openai_voice(config.get("voice_openai", ""), sound_name):
+            return
+        logger.warning("OpenAI failed, falling back to macOS voice")
+        mode = "voice_macos"  # Fallback
     
-    # For sounds mode, check if using a custom voice pack like alfred
-    if mode == "sounds":
-        # Custom voice packs (alfred, jarvis, etc.) use their own sounds
-        custom_voice_packs = ["alfred", "jarvis", "ding"]
-        if voice not in custom_voice_packs:
-            # For theme-based sounds, use generic sound name
-            sound_name = "notification_sound"  # Generic sound name for simple audio
-        # Otherwise keep the context-aware sound_name for custom voice packs
+    if mode == "voice_macos" or mode == "voice_soundpack":
+        voice_name = config.get("voice_macos", "daniel")
+        if try_macos_voice(voice_name, sound_name):
+            return
+        logger.warning(f"macOS voice '{voice_name}' failed, falling back to sound files")
+        mode = "soundpack"  # Fallback
     
+    if mode == "soundpack" or mode == "voice_soundpack":
+        soundpack = config.get("soundpack", "default")
+        if try_soundpack(soundpack, sound_name):
+            return
+        logger.warning(f"Soundpack '{soundpack}' failed, falling back to default sounds")
+        mode = "default"  # Fallback
+    
+    # Final fallback: default sounds
+    if try_default_sound(sound_name):
+        return
+    
+    # Ultimate fallback: terminal bell
+    logger.error("All notification methods failed, using terminal bell")
+    print("\a", end="", flush=True)
+
+def try_elevenlabs_voice(voice_id: str, sound_name: str) -> bool:
+    """Try ElevenLabs TTS voice (not implemented yet)."""
+    if not voice_id:
+        logger.debug("ElevenLabs voice_id is empty")
+        return False
+    
+    logger.warning("ElevenLabs TTS not implemented yet")
+    return False
+
+def try_openai_voice(voice_name: str, sound_name: str) -> bool:
+    """Try OpenAI TTS voice (not implemented yet)."""
+    if not voice_name:
+        logger.debug("OpenAI voice_name is empty")
+        return False
+    
+    logger.warning("OpenAI TTS not implemented yet")
+    return False
+
+def try_macos_voice(voice_name: str, sound_name: str) -> bool:
+    """Try macOS system voice."""
+    if not voice_name:
+        voice_name = "daniel"
+    
+    return play_system_voice(voice_name, sound_name)
+
+def try_soundpack(soundpack: str, sound_name: str) -> bool:
+    """Try custom soundpack (alfred, jarvis, etc.)."""
+    if not soundpack:
+        soundpack = "default"
+    
+    return play_sound_file(soundpack, sound_name, context_aware=True)
+
+def try_default_sound(sound_name: str) -> bool:
+    """Try default simple sounds."""
+    return play_sound_file("default", sound_name, context_aware=False)
+
+def play_sound_file(soundpack: str, sound_name: str, context_aware: bool = False) -> bool:
+    """Play sound file with pygame."""
     try:
         import pygame
         import os
+        from pathlib import Path
         
-        # Get script directory and build sound path
+        # Get script directory
         script_dir = Path(__file__).parent
         
-        # For sounds mode, look in appropriate directories
-        if mode == "sounds":
-            custom_voice_packs = ["alfred", "jarvis", "ding"]
-            
-            if voice in custom_voice_packs:
-                # Look in voice-specific directory for custom voice packs
-                voice_mp3 = script_dir / "sounds" / voice / f"{sound_name}.mp3"
-                voice_wav = script_dir / "sounds" / voice / f"{sound_name}.wav"
-                
-                if voice_mp3.exists():
-                    sound_path = voice_mp3
-                elif voice_wav.exists():
-                    sound_path = voice_wav
-                else:
-                    # Fallback to theme if voice-specific sound not found
-                    theme_mp3 = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.mp3"
-                    theme_wav = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.wav"
-                    
-                    if theme_mp3.exists():
-                        sound_path = theme_mp3
-                    elif theme_wav.exists():
-                        sound_path = theme_wav
-                    else:
-                        logger.warning(f"⚠️ Sound file not found for {voice}/{sound_name}, using default")
-                        sound_path = script_dir / "sounds" / "themes" / "default" / "notification_sound.wav"
-            else:
-                # Try theme-based sound lookup for non-voice-pack modes
-                theme_mp3 = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.mp3"
-                theme_wav = script_dir / "sounds" / "themes" / sound_theme / f"{sound_name}.wav"
-                
-                if theme_mp3.exists():
-                    sound_path = theme_mp3
-                    logger.debug(f"Found theme sound file: {sound_path}")
-                elif theme_wav.exists():
-                    sound_path = theme_wav
-                    logger.debug(f"Found theme sound file (wav): {sound_path}")
-                else:
-                    logger.warning(f"Theme sound files not found: {theme_mp3} OR {theme_wav}")
-                    
-                    # Fallback to classic theme
-                    classic_mp3 = script_dir / "sounds" / "themes" / "classic" / f"{voice}.mp3"
-                    classic_wav = script_dir / "sounds" / "themes" / "classic" / f"{voice}.wav"
-                    
-                    if classic_mp3.exists():
-                        sound_path = classic_mp3
-                        logger.warning(f"Using classic theme fallback: {sound_path}")
-                    elif classic_wav.exists():
-                        sound_path = classic_wav
-                        logger.warning(f"Using classic theme fallback (wav): {sound_path}")
-                    else:
-                        # Final fallback to original chime
-                        chime_path = script_dir / "sounds" / "chime.mp3"
-                        if chime_path.exists():
-                            sound_path = chime_path
-                            logger.warning(f"Using original chime fallback: {sound_path}")
-                        else:
-                            logger.error(f"All fallbacks failed - tried: {theme_mp3}, {theme_wav}, {classic_mp3}, {classic_wav}, {chime_path}")
-                            print("\a", end="", flush=True)  # Terminal bell fallback
-                            return
+        # For non-context-aware (default sounds), use simple sound name
+        if not context_aware:
+            sound_name = "notification_sound"
+        
+        # Build sound path based on soundpack
+        custom_soundpacks = ["alfred", "jarvis"]
+        if soundpack in custom_soundpacks:
+            # Look in soundpack directory
+            sound_path = None
+            for ext in [".mp3", ".wav"]:
+                test_path = script_dir / "sounds" / soundpack / f"{sound_name}{ext}"
+                if test_path.exists():
+                    sound_path = test_path
+                    break
         else:
-            # Voice mode: Try specific voice/sound combination (mp3 then wav)
-            mp3_path = script_dir / "sounds" / voice / f"{sound_name}.mp3"
-            wav_path = script_dir / "sounds" / voice / f"{sound_name}.wav"
-            
-            if mp3_path.exists():
-                sound_path = mp3_path
-                logger.debug(f"Found primary sound file: {sound_path}")
-            elif wav_path.exists():
-                sound_path = wav_path
-                logger.debug(f"Found primary sound file (wav): {sound_path}")
+            # Look in themes directory
+            sound_path = None
+            theme = "default" if soundpack == "default" else "classic"
+            for ext in [".mp3", ".wav"]:
+                test_path = script_dir / "sounds" / "themes" / theme / f"{sound_name}{ext}"
+                if test_path.exists():
+                    sound_path = test_path
+                    break
+        
+        # Final fallback
+        if not sound_path:
+            fallback_path = script_dir / "sounds" / "chime.mp3"
+            if fallback_path.exists():
+                sound_path = fallback_path
             else:
-                logger.warning(f"Primary sound files not found: {mp3_path} OR {wav_path}")
-                
-                # Fallback to chime for voice mode too
-                chime_path = script_dir / "sounds" / "chime.mp3"
-                if chime_path.exists():
-                    sound_path = chime_path
-                    logger.warning(f"Using chime fallback: {sound_path}")
-                else:
-                    logger.error(f"All fallbacks failed - tried: {mp3_path}, {wav_path}, {chime_path}")
-                    print("\a", end="", flush=True)  # Terminal bell fallback
-                    return
+                logger.error(f"No sound files found for {soundpack}/{sound_name}")
+                return False
         
         # Set environment variable to suppress pygame messages
         os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -509,23 +529,23 @@ def play_voice_sound(voice: str = "ding", sound_name: str = "task_complete", mod
         import time
         time.sleep(0.1)  # Let it start
         
-        # Wait for completion with longer timeout for voice clips
-        timeout = 3.0  # 3 seconds max wait
+        # Wait for completion with timeout
+        timeout = 3.0
         start_time = time.time()
         
         while pygame.mixer.get_busy() and (time.time() - start_time) < timeout:
             time.sleep(0.1)
         
-        logger.info(f"✅ Successfully played: {voice}/{sound_name} -> {sound_path.name} (from {sound_path})")
+        logger.info(f"✅ Successfully played: {soundpack}/{sound_name} -> {sound_path.name}")
         pygame.mixer.quit()
+        return True
         
-    except ImportError as e:
-        logger.error(f"❌ pygame not available ({voice}/{sound_name}): {e} - falling back to terminal bell")
-        print("\a", end="", flush=True)
-        
+    except ImportError:
+        logger.error(f"❌ pygame not available for {soundpack}/{sound_name}")
+        return False
     except Exception as e:
-        logger.error(f"❌ Voice playback failed ({voice}/{sound_name}): {e} - attempted file: {sound_path if 'sound_path' in locals() else 'unknown'}")
-        print("\a", end="", flush=True)
+        logger.error(f"❌ Sound playback failed for {soundpack}/{sound_name}: {e}")
+        return False
 
 def load_notification_config() -> dict:
     """Load notification configuration from .claude/settings.json"""
@@ -556,8 +576,9 @@ def main() -> None:
     Main function - reads Claude's JSON hook data and plays appropriate sound.
     """
     parser = argparse.ArgumentParser(description='Play voice notifications for Claude Code')
-    parser.add_argument('--voice', default=None, help='Voice character (overrides config)')
-    parser.add_argument('--mode', default=None, help='Notification mode (voice, sounds, off)')
+    parser.add_argument('--sound-pack', default=None, help='Sound pack (overrides config)')
+    parser.add_argument('--mode', default=None, help='Notification mode (sounds, speech, off)')
+    parser.add_argument('--voice', default=None, help='DEPRECATED: Use --sound-pack instead')
     parser.add_argument('--debug', action='store_true', help='Enable verbose debug logging')
     
     # Parse command line arguments
@@ -565,13 +586,21 @@ def main() -> None:
     debug_mode = args.debug
     
     # Load configuration from settings.json
-    config = load_notification_config()
+    raw_config = load_notification_config()
     
-    # Determine notification mode, voice, and sound theme
-    mode = args.mode or config.get("mode", "voice")
-    voice = args.voice or config.get("voice", "alfred")
-    sound_theme = config.get("sound_theme", "default")
-    quiet_hours = config.get("quiet_hours", False)
+    # Parse configuration with backward compatibility
+    config = parse_notification_config(raw_config)
+    
+    # Determine notification settings (with command line overrides)
+    mode = args.mode or config["mode"]
+    quiet_hours = config["quiet_hours"]
+    
+    # Handle deprecated --voice flag for backward compatibility
+    if args.voice and not args.sound_pack:
+        logger.warning("DEPRECATED: --voice flag is deprecated. Use --sound-pack instead.")
+        if args.voice == "alfred":
+            config["soundpack"] = "alfred"
+            mode = "soundpack"
     
     # Check for quiet mode
     if mode == "off" or quiet_hours:
@@ -582,7 +611,7 @@ def main() -> None:
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug mode enabled - verbose logging active")
     
-    logger.info(f"Voice notification hook started with mode: {mode}, voice: {voice}, theme: {sound_theme}, debug: {debug_mode}")
+    logger.info(f"Voice notification hook started with mode: {mode}, config: {config}, debug: {debug_mode}")
     
     # Read hook data from stdin (Claude provides this)
     try:
@@ -641,7 +670,8 @@ def main() -> None:
         
         # Map to sound name using our enhanced context-aware configuration
         if hook_event_name:
-            sound_name = get_context_aware_sound_name(hook_event_name, tool_name, tool_input, input_data, sound_theme, voice)
+            soundpack = config.get("soundpack", "default")
+            sound_name = get_context_aware_sound_name(hook_event_name, tool_name, tool_input, input_data, "default", soundpack)
         else:
             # Fallback for unknown events
             logger.warning(f"Unknown hook event, using fallback sound")
@@ -653,14 +683,14 @@ def main() -> None:
     except json.JSONDecodeError as e:
         # No JSON input, use default
         sound_name = "task_complete"
-        logger.warning(f"No JSON input - using default sound: {sound_name}, voice: {voice}, error: {e}")
+        logger.warning(f"No JSON input - using default sound: {sound_name}, mode: {mode}, error: {e}")
         
     except Exception as e:
         sound_name = "task_complete"
-        logger.error(f"Hook parsing error - using default: sound={sound_name}, voice={voice}, error={e}")
+        logger.error(f"Hook parsing error - using default: sound={sound_name}, mode={mode}, error={e}")
     
-    # Play the sound
-    play_voice_sound(voice, sound_name, mode, sound_theme)
+    # Play the notification with new clean system
+    play_notification(mode, config, sound_name)
     sys.exit(0)
 
 if __name__ == "__main__":
