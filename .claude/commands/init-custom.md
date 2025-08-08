@@ -67,6 +67,22 @@ Bash command="[ -d .claude ] && echo 'EXISTS' || echo 'NOT_FOUND'"
 
 **If output is "EXISTS" → UPDATE MODE**:
 - Say EXACTLY: "📦 Found existing .claude/ directory. Checking for missing components..."
+- **CRITICAL: Create essential files first to prevent hook errors**:
+  ```bash
+  # Find template source immediately to prevent hook failures
+  TEMPLATE_SOURCE=$(find ~/Repos -path "*claude-code-custom-init*/.claude/templates" -type d 2>/dev/null | head -1)
+  if [ -z "$TEMPLATE_SOURCE" ]; then
+    TEMPLATE_SOURCE=$(find ~/Repos -path "*/.claude/templates" -type d 2>/dev/null | head -1)
+  fi
+  
+  # Create run-hook script FIRST if it doesn't exist (prevents hook failures)
+  if [ ! -f ".claude/bin/run-hook.sh" ] && [ -n "$TEMPLATE_SOURCE" ]; then
+    mkdir -p .claude/bin
+    cp "$TEMPLATE_SOURCE/bin/run-hook.sh" .claude/bin/run-hook.sh
+    chmod +x .claude/bin/run-hook.sh
+    echo "🔧 Created missing run-hook script to prevent hook errors"
+  fi
+  ```
 - Check all components systematically:
   ```bash
   # Check subdirectories
