@@ -198,84 +198,43 @@ find ~/Repos -name ".claude" -type d 2>/dev/null | head -5
 # Look for projects that have .claude/hooks/voice_notifications/sounds/alfred/
 ```
 
-Once you find a reference source with alfred support:
-- Copy entire `common/` directory with all Python files
-- Copy entire `voice_notifications/` directory INCLUDING:
-  - `handler.py` - **CRITICAL: Must be the advanced version that supports alfred voice!**
-    - The handler MUST have context-aware pattern matching for alfred
-    - Verify AFTER copying: `grep -q "alfred" handler.py && echo "ALFRED_SUPPORTED"`
-    - If verification fails, the handler doesn't support alfred
-  - `sound_mapping.json` - **CRITICAL: Must include alfred voice mappings!**
-    - The handler.py expects alfred mappings in sound_mapping.json
-    - If copying doesn't include alfred section, UPDATE the file to add:
-    ```json
-    // Add this "alfred" section to the existing sound_mapping.json structure
-    "alfred": {
-      // Context-aware mappings (these are used when specific patterns match)
-      "patterns": {
-        ".py:Read": "starting_python_read",
-        ".py:Edit": "starting_python_edit",
-        ".ts:Read": "starting_typescript_read",
-        ".ts:Edit": "starting_typescript_edit",
-        ".tsx:Edit": "starting_typescript_edit",
-        ".json:Read": "starting_config_read",
-        ".json:Edit": "starting_config_edit",
-        "settings.json:Edit": "starting_config_edit",
-        "CLAUDE.md:Read": "starting_instructions_read",
-        "CLAUDE.md:Edit": "starting_instructions_edit",
-        "README:Read": "starting_readme_read",
-        ".log:Read": "starting_log_read",
-        "git status": "starting_git_status",
-        "git diff": "starting_git_diff",
-        "git add": "starting_git_staging",
-        "git commit": "starting_git_commit",
-        "git log": "starting_git_history"
-      },
-      // Default tool mappings (fallback when no pattern matches)
-      "tools": {
-        "Read": "file_read",
-        "Edit": "code_edit",
-        "Write": "starting_typescript_write",
-        "Grep": "search",
-        "Glob": "search",
-        "LS": "search",
-        "Bash": "system_command",
-        "TodoWrite": "updating_todo_list",
-        "Task": "managing_tasks"
-      },
-      // Event mappings
-      "events": {
-        "Stop": "work_finished",
-        "SubagentStop": "assignment_finished",
-        "Notification": "alert",
-        "UserPromptSubmit": "awaiting_response",
-        "ExitPlanMode": "plan_ready"
-      }
-    }
-    ```
-  - `README.md` - Documentation
-  - **ALL alfred voice files** from `sounds/alfred/` (55+ MP3 files):
-    - File operations: `file_read.mp3`, `code_edit.mp3`, `starting_python_edit.mp3`, etc.
-    - Git operations: `starting_git_status.mp3`, `starting_git_commit.mp3`, etc.
-    - Status sounds: `task_complete.mp3`, `work_finished.mp3`, `error.mp3`, etc.
-    - Attention sounds: `alert.mp3`, `attention.mp3`, `awaiting_approval.mp3`
-  - **Theme sounds** from `sounds/themes/`:
-    - `default/`: 12 context-aware sounds (typewriter, success, etc.)
-    - `classic/`: 2 simple sounds (ding.wav, chime.mp3)
-    - `system/`: Empty (for system sounds)
+**STREAMLINED: Copy Pre-built Components**
 
-**CRITICAL - Copy ALL Sound Files**: 
+Simply copy the working templates that include everything needed:
+
 ```bash
-# Find a source with alfred sounds
-SOURCE=$(find ~/Repos ~/.claude/reference -path "*/sounds/alfred/*.mp3" 2>/dev/null | head -1 | sed 's|/alfred/.*mp3||')
+# Copy pre-built hook system with alfred support
+mkdir -p .claude/hooks/voice_notifications
+cp .claude/templates/handler.py .claude/hooks/voice_notifications/handler.py
+cp .claude/templates/sound_mapping.json .claude/hooks/voice_notifications/sound_mapping.json
 
-# If found, copy the entire sounds directory
-if [ -n "$SOURCE" ]; then
-  cp -r "$SOURCE" .claude/hooks/voice_notifications/sounds
+# Copy common utilities (if they exist)
+if [ -d .claude/hooks/common ]; then
+  echo "✅ Common utilities already exist"
 else
-  echo "WARNING: No alfred sounds found. You'll need to obtain them separately."
+  # Copy from reference or create minimal
+  mkdir -p .claude/hooks/common
+  # Copy from a working reference project
+  SOURCE=$(find ~/Repos -path "*/.claude/hooks/common" -type d 2>/dev/null | head -1)
+  if [ -n "$SOURCE" ]; then
+    cp -r "$SOURCE"/* .claude/hooks/common/
+  fi
 fi
-# This ensures all 55+ alfred sounds, theme sounds, and base sounds are copied
+
+# Copy or reference existing sound files
+if [ -d .claude/hooks/voice_notifications/sounds/alfred ]; then
+  echo "✅ Alfred sounds already exist ($(ls .claude/hooks/voice_notifications/sounds/alfred/*.mp3 2>/dev/null | wc -l) files)"
+else
+  # Try to find existing alfred sounds
+  SOURCE=$(find ~/Repos -path "*/sounds/alfred" -type d 2>/dev/null | head -1)
+  if [ -n "$SOURCE" ]; then
+    cp -r "$(dirname "$SOURCE")" .claude/hooks/voice_notifications/sounds
+    echo "✅ Copied alfred sounds from existing project"
+  else
+    echo "⚠️  Alfred sounds not found. Voice will use basic sounds."
+    mkdir -p .claude/hooks/voice_notifications/sounds/alfred
+  fi
+fi
 ```
 
 **Sound Mapping Documentation**:
@@ -297,9 +256,20 @@ Users can create custom voices by:
 - The handler.py imports must reference the local common module
 - Sound paths must be relative to the project
 
-### 4. Configure Settings
+### 4. Configure Settings (Using Pre-built Templates)
 
-Create `settings.json`:
+Copy pre-built settings template:
+```bash
+# Copy complete settings.json template
+cp .claude/templates/settings.json .claude/settings.json
+
+# Create run-hook script
+mkdir -p .claude/bin
+cp .claude/templates/bin/run-hook.sh .claude/bin/run-hook.sh
+chmod +x .claude/bin/run-hook.sh
+```
+
+The template contains:
 ```json
 {
   "permissions": {
@@ -455,12 +425,21 @@ Bash command="[ -f .mcp.json ] && echo 'MCP_EXISTS' || echo 'MCP_MISSING'"
 **If MCP_EXISTS**:
 - Say: "✓ Project MCP configuration found (.mcp.json)"
 
-### 8. Install Dependencies
+### 8. Install Dependencies (Isolated Environment)
 
-Ensure pygame is installed for voice notifications:
+Create isolated Python environment and install pygame:
 ```bash
-uv add pygame
+# Create virtual environment inside .claude
+python3 -m venv .claude/.venv
+
+# Install pygame in isolation (no project pollution)
+.claude/.venv/bin/pip install pygame --quiet
+
+echo "✅ Python environment created: .claude/.venv/"
+echo "✅ pygame installed in isolated environment"
 ```
+
+This keeps all Python dependencies inside .claude/ without affecting your project.
 
 ### 9. Analyze and Suggest
 
@@ -499,6 +478,13 @@ Next steps:
 
 🎵 Voice notifications are enabled. You'll hear sounds as I work!
 💡 Create custom agents anytime with: /create-agent [name] [specialty]
+
+📝 Recommended: Add Claude files to .gitignore:
+   .claude/
+   CLAUDE.md  
+   .mcp.json
+
+Quick add: echo -e '\n# Claude AI\n.claude/\nCLAUDE.md\n.mcp.json' >> .gitignore
 ```
 
 **For Update/Merge**:
@@ -528,6 +514,13 @@ CLAUDE.md helps Claude understand:
 
 🎵 Voice notifications ready with alfred voice!
 💡 Run /init next to complete your setup with project context.
+
+📝 Recommended: Add Claude files to .gitignore:
+   .claude/
+   CLAUDE.md  
+   .mcp.json
+
+Quick add: echo -e '\n# Claude AI\n.claude/\nCLAUDE.md\n.mcp.json' >> .gitignore
 ```
 
 ## Important Implementation Notes

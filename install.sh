@@ -9,6 +9,32 @@ echo "🚀 Claude Code Custom Init Installer"
 echo "===================================="
 echo ""
 
+# Parse installation mode
+MODE="auto"
+for arg in "$@"; do
+    case $arg in
+        --manual|-m)
+            MODE="manual"
+            shift
+            ;;
+        --auto|-a)
+            MODE="auto"  
+            shift
+            ;;
+    esac
+done
+
+if [ "$MODE" = "auto" ]; then
+    echo "🤖 Auto installation mode (recommended)"
+    echo "This will create .claude/ setup with alfred voice."
+    echo "Existing files will be backed up if they exist."
+    echo ""
+else
+    echo "🎯 Manual installation mode"  
+    echo "You'll be prompted for each configuration choice."
+    echo ""
+fi
+
 # Check if we're in a project directory
 if [ ! -d ".git" ] && [ ! -f "package.json" ] && [ ! -f "pyproject.toml" ] && [ ! -f "go.mod" ]; then
     echo "⚠️  Warning: This doesn't look like a project directory."
@@ -46,13 +72,6 @@ unzip -q "$TEMP_DIR/claude-init.zip" -d "$TEMP_DIR"
 echo "📂 Installing .claude directory..."
 cp -r "$TEMP_DIR/claude-code-custom-init-main/.claude" .
 
-# Copy scripts directory if it exists
-if [ -d "$TEMP_DIR/claude-code-custom-init-main/scripts" ]; then
-    echo "📜 Installing helper scripts..."
-    mkdir -p scripts
-    cp -r "$TEMP_DIR/claude-code-custom-init-main/scripts/"*.py scripts/ 2>/dev/null || true
-fi
-
 # Move template files to .claude root
 echo "📝 Setting up configuration files..."
 if [ -f ".claude/templates/settings.json" ]; then
@@ -74,17 +93,6 @@ if [ -f ".claude/settings.json" ]; then
     echo "✅ Set alfred as default voice"
 fi
 
-# Fix Python 3.9 compatibility if needed
-if [ -f "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" ]; then
-    echo "🔧 Checking Python compatibility..."
-    cp "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" scripts/ 2>/dev/null || mkdir -p scripts && cp "$TEMP_DIR/claude-code-custom-init-main/scripts/fix-python39-compatibility.py" scripts/
-    
-    if command -v python3 &> /dev/null; then
-        python3 scripts/fix-python39-compatibility.py 2>/dev/null || true
-    elif command -v python &> /dev/null; then
-        python scripts/fix-python39-compatibility.py 2>/dev/null || true
-    fi
-fi
 
 # Verify hooks directory exists and has the handler
 if [ ! -f ".claude/hooks/voice_notifications/handler.py" ]; then
@@ -144,19 +152,14 @@ if [ -n "$PYTHON_CMD" ]; then
         # Try to install pygame with available tools
         INSTALL_SUCCESS=false
         
-        # Method 1: Try uv (preferred)
-        if command -v uv &> /dev/null; then
-            echo "🔧 Installing with uv..."
+        # Method 1: Create isolated Python environment (preferred)
+        echo "🔧 Creating isolated Python environment..."
+        if python3 -m venv .claude/.venv >/dev/null 2>&1; then
+            echo "✅ Created Python virtual environment in .claude/.venv"
             
-            # Initialize Python project if needed
-            if [ ! -f "pyproject.toml" ]; then
-                PROJECT_NAME=$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
-                uv init --name "$PROJECT_NAME" >/dev/null 2>&1 || true
-            fi
-            
-            # Add pygame
-            if uv add pygame >/dev/null 2>&1; then
-                echo "✅ pygame installed with uv"
+            # Install pygame in isolated environment
+            if .claude/.venv/bin/pip install pygame --quiet >/dev/null 2>&1; then
+                echo "✅ pygame installed in isolated environment"
                 INSTALL_SUCCESS=true
             fi
         fi
@@ -216,5 +219,13 @@ echo "3. Run: /init (to create CLAUDE.md with project context)"
 echo ""
 echo "🎵 Alfred voice notifications are ready!"
 echo "💡 Create custom agents with: /create-agent [name] [specialty]"
+echo ""
+echo "📝 Recommended: Add Claude files to .gitignore:"
+echo "   .claude/"
+echo "   CLAUDE.md"
+echo "   .mcp.json"
+echo ""
+echo "Quick add:"
+echo "   echo -e '\\n# Claude AI\\n.claude/\\nCLAUDE.md\\n.mcp.json' >> .gitignore"
 echo ""
 echo "For help, see: $REPO_URL"

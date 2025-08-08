@@ -10,8 +10,9 @@
     "quiet_hours": false,
     "_comment": "alfred is a sound pack - use mode='sounds' and voice='alfred' (lowercase)",
     "_available_modes": "voice (full speech), sounds (simple audio), off (silent)",
-    "_available_voices_for_mode_voice": "Zoe (Premium), Jamie (Premium), albert, daniel, samantha, alex, eddy",
-    "_available_sound_packs_for_mode_sounds": "alfred (context-aware voice clips), default (generic sounds), classic (ding/chime)"
+    "_available_themes": "default (generic sounds), classic (ding/chime), system (macOS)",
+    "_available_voices_for_mode_voice": "Zoe (Premium), Jamie (Premium), albert, daniel, samantha",
+    "_available_sound_packs_for_mode_sounds": "alfred (context-aware clips), default, classic"
   },
   "hooks": {
     "Stop": [
@@ -19,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/voice_notifications/handler.py"
+            "command": ".claude/bin/run-hook.sh hooks/voice_notifications/handler.py"
           }
         ]
       }
@@ -29,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/voice_notifications/handler.py"
+            "command": ".claude/bin/run-hook.sh hooks/voice_notifications/handler.py"
           }
         ]
       }
@@ -39,10 +40,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run .claude/hooks/voice_notifications/handler.py"
+            "command": ".claude/bin/run-hook.sh hooks/voice_notifications/handler.py"
           }
         ]
       }
     ]
   }
 }
+EOF < /dev/null
