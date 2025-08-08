@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "notifications": {
+    "mode": "override",
+    "soundpack": "alfred",
+    "voice_macos": "daniel",
+    "voice_elevenlabs": "",
+    "voice_openai": "",
+    "override_sound_file": "click.wav",
+    "quiet_hours": false,
+    "_schema_version": "3.0",
+    "_comment": "Testing override mode with simple click sound"
+  }
+}

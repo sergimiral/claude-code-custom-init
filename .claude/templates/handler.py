@@ -132,6 +132,7 @@ def parse_notification_config(config: dict) -> dict:
         "voice_macos": config.get("voice_macos", "daniel"), 
         "voice_elevenlabs": config.get("voice_elevenlabs", ""),
         "voice_openai": config.get("voice_openai", ""),
+        "override_sound_file": config.get("override_sound_file", "click.mp3"),
         "quiet_hours": config.get("quiet_hours", False)
     }
     
@@ -400,6 +401,14 @@ def play_notification(mode: str, config: dict, sound_name: str = "task_complete"
         logger.info("🔇 Silent mode - no audio")
         return
     
+    # Handle override mode - use single file for ALL notifications
+    if mode == "override":
+        override_file = config.get("override_sound_file", "click.mp3")
+        if try_override_sound(override_file):
+            return
+        logger.warning(f"Override sound '{override_file}' failed, falling back to default")
+        mode = "default"  # Fallback
+    
     # Try the primary mode first, with graceful fallbacks
     if mode == "voice_elevenlabs":
         if try_elevenlabs_voice(config.get("voice_elevenlabs", ""), sound_name):
@@ -470,6 +479,10 @@ def try_soundpack(soundpack: str, sound_name: str) -> bool:
 def try_default_sound(sound_name: str) -> bool:
     """Try default simple sounds."""
     return play_sound_file("default", sound_name, context_aware=False)
+
+def try_override_sound(override_file: str) -> bool:
+    """Try playing override sound file from specified path."""
+    return play_override_file(override_file)
 
 def play_sound_file(soundpack: str, sound_name: str, context_aware: bool = False) -> bool:
     """Play sound file with pygame."""
@@ -545,6 +558,67 @@ def play_sound_file(soundpack: str, sound_name: str, context_aware: bool = False
         return False
     except Exception as e:
         logger.error(f"❌ Sound playback failed for {soundpack}/{sound_name}: {e}")
+        return False
+
+def play_override_file(override_file: str) -> bool:
+    """Play single override sound file with pygame."""
+    try:
+        import pygame
+        import os
+        from pathlib import Path
+        
+        # Get script directory for relative paths
+        script_dir = Path(__file__).parent
+        
+        # Handle different path formats
+        override_path = Path(override_file)
+        
+        if override_path.is_absolute():
+            # Absolute path - use as-is
+            sound_path = override_path
+        elif str(override_file).startswith('.claude/'):
+            # Relative to project root (.claude/sounds/click.mp3)
+            sound_path = Path.cwd() / override_file
+        else:
+            # Relative to sounds directory (.claude/hooks/voice_notifications/sounds/)
+            sound_path = script_dir / "sounds" / override_file
+        
+        # Check if file exists
+        if not sound_path.exists():
+            logger.error(f"Override sound file not found: {sound_path}")
+            return False
+        
+        # Set environment variable to suppress pygame messages
+        os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+        
+        # Initialize pygame mixer
+        pygame.mixer.pre_init(frequency=22050, size=-16, channels=2, buffer=1024)
+        pygame.mixer.init()
+        
+        # Load and play the sound
+        sound = pygame.mixer.Sound(str(sound_path))
+        sound.play()
+        
+        # Wait for sound to play completely
+        import time
+        time.sleep(0.1)  # Let it start
+        
+        # Wait for completion with timeout
+        timeout = 3.0
+        start_time = time.time()
+        
+        while pygame.mixer.get_busy() and (time.time() - start_time) < timeout:
+            time.sleep(0.1)
+        
+        logger.info(f"✅ Successfully played override: {sound_path.name}")
+        pygame.mixer.quit()
+        return True
+        
+    except ImportError:
+        logger.error(f"❌ pygame not available for override sound: {override_file}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Override sound playback failed: {override_file}, error: {e}")
         return False
 
 def load_notification_config() -> dict:

@@ -9,7 +9,6 @@
     "voice_macos": "daniel",
     "voice_elevenlabs": "",
     "voice_openai": "",
-    "override_sound_file": "click.mp3",
     "quiet_hours": false,
     "_schema_version": "3.0",
     "_comment": "Clean single-mode architecture with graceful fallbacks",
@@ -20,15 +19,13 @@
       "voice_macos": "macOS built-in TTS voices",
       "voice_elevenlabs": "ElevenLabs AI voices (requires API key)",
       "voice_openai": "OpenAI TTS voices (requires API key)",
-      "override": "Single sound file for ALL notifications",
       "off": "Silent mode"
     },
     "_config_fields": {
       "soundpack": "Sound pack name (alfred, jarvis, default, classic)",
       "voice_macos": "macOS voice name (daniel, samantha, alex, albert)",
       "voice_elevenlabs": "ElevenLabs voice ID (requires API setup)",
-      "voice_openai": "OpenAI voice name (nova, alloy, echo, etc.)",
-      "override_sound_file": "Single sound file for override mode (click.mp3, beep.wav, etc.)"
+      "voice_openai": "OpenAI voice name (nova, alloy, echo, etc.)"
     },
     "_fallback_chain": "Each mode gracefully falls back to simpler modes if config missing or fails"
   },
