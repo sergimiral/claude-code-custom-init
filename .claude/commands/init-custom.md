@@ -203,10 +203,19 @@ find ~/Repos -name ".claude" -type d 2>/dev/null | head -5
 Simply copy the working templates that include everything needed:
 
 ```bash
+# Find template source (repository or reference location)
+TEMPLATE_SOURCE=$(find ~/Repos -path "*claude-code-custom-init*/.claude/templates" -type d 2>/dev/null | head -1)
+if [ -z "$TEMPLATE_SOURCE" ]; then
+  TEMPLATE_SOURCE=$(find ~/Repos -path "*/.claude/templates" -type d 2>/dev/null | head -1)
+fi
+
 # Copy pre-built hook system with alfred support
 mkdir -p .claude/hooks/voice_notifications
-cp .claude/templates/handler.py .claude/hooks/voice_notifications/handler.py
-cp .claude/templates/sound_mapping.json .claude/hooks/voice_notifications/sound_mapping.json
+if [ -n "$TEMPLATE_SOURCE" ]; then
+  cp "$TEMPLATE_SOURCE/handler.py" .claude/hooks/voice_notifications/handler.py
+  cp "$TEMPLATE_SOURCE/sound_mapping.json" .claude/hooks/voice_notifications/sound_mapping.json
+  echo "✅ Copied pre-built handler and sound mapping"
+fi
 
 # Copy common utilities (if they exist)
 if [ -d .claude/hooks/common ]; then
@@ -260,13 +269,25 @@ Users can create custom voices by:
 
 Copy pre-built settings template:
 ```bash
-# Copy complete settings.json template
-cp .claude/templates/settings.json .claude/settings.json
+# Find template source (repository or reference location)
+TEMPLATE_SOURCE=$(find ~/Repos -path "*claude-code-custom-init*/.claude/templates" -type d 2>/dev/null | head -1)
+if [ -z "$TEMPLATE_SOURCE" ]; then
+  TEMPLATE_SOURCE=$(find ~/Repos -path "*/.claude/templates" -type d 2>/dev/null | head -1)
+fi
 
-# Create run-hook script
-mkdir -p .claude/bin
-cp .claude/templates/bin/run-hook.sh .claude/bin/run-hook.sh
-chmod +x .claude/bin/run-hook.sh
+if [ -n "$TEMPLATE_SOURCE" ]; then
+  # Copy complete settings.json template
+  cp "$TEMPLATE_SOURCE/settings.json" .claude/settings.json
+  
+  # Create run-hook script
+  mkdir -p .claude/bin
+  cp "$TEMPLATE_SOURCE/bin/run-hook.sh" .claude/bin/run-hook.sh
+  chmod +x .claude/bin/run-hook.sh
+  echo "✅ Copied settings and run-hook script from templates"
+else
+  echo "⚠️  Templates not found. Using fallback configuration."
+  # Fallback: create minimal settings manually
+fi
 ```
 
 The template contains:
