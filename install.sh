@@ -84,13 +84,11 @@ if [ -f ".claude/templates/settings.local.json" ]; then
     echo "✅ Moved settings.local.json to .claude/"
 fi
 
-# Ensure alfred is set as the default voice
-echo "🎵 Configuring alfred voice..."
+# The settings.json template already has correct v3.0 configuration
+# No modification needed - template uses "mode": "soundpack" with "soundpack": "alfred"
+echo "🎵 Voice configuration ready..."
 if [ -f ".claude/settings.json" ]; then
-    # Update voice to alfred (macOS compatible sed command)
-    sed -i '' 's/"voice": "classic"/"voice": "alfred"/g' ".claude/settings.json" 2>/dev/null || \
-    sed -i 's/"voice": "classic"/"voice": "alfred"/g' ".claude/settings.json" 2>/dev/null || true
-    echo "✅ Set alfred as default voice"
+    echo "✅ Using v3.0 schema with alfred soundpack"
 fi
 
 
