@@ -10,10 +10,25 @@ You are tasked with setting up a complete Claude Code project environment with a
 
 ## ⚠️ STOP - MANDATORY FIRST CHECK ⚠️
 
-Before doing ANYTHING else, you MUST check if `.claude` directory already exists using Bash:
+Before doing ANYTHING else, you MUST prevent hook errors by creating essential files if they're missing, then check if `.claude` directory exists:
 
 ```bash
-# RUN THIS BASH COMMAND FIRST - NO EXCEPTIONS:
+# FIRST: Prevent hook failures by creating run-hook script if missing and settings.json exists
+if [ -f ".claude/settings.json" ] && [ ! -f ".claude/bin/run-hook.sh" ]; then
+  echo "🔧 Detected settings.json without run-hook.sh - creating to prevent errors..."
+  TEMPLATE_SOURCE=$(find ~/Repos -path "*claude-code-custom-init*/.claude/templates" -type d 2>/dev/null | head -1)
+  if [ -z "$TEMPLATE_SOURCE" ]; then
+    TEMPLATE_SOURCE=$(find ~/Repos -path "*/.claude/templates" -type d 2>/dev/null | head -1)
+  fi
+  if [ -n "$TEMPLATE_SOURCE" ]; then
+    mkdir -p .claude/bin
+    cp "$TEMPLATE_SOURCE/bin/run-hook.sh" .claude/bin/run-hook.sh
+    chmod +x .claude/bin/run-hook.sh
+    echo "✅ Created run-hook.sh to prevent hook failures"
+  fi
+fi
+
+# NOW check if .claude directory exists:
 Bash command="[ -d .claude ] && echo 'EXISTS' || echo 'NOT_FOUND'"
 ```
 
