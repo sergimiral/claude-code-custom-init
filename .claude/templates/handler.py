@@ -120,7 +120,7 @@ def load_sound_mapping() -> SoundMapping:
             "default": "task_complete"
         }
 
-def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional[ToolName] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default") -> str:
+def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional[ToolName] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", voice: str = "alfred") -> str:
     """Map Claude's hook/tool names to context-aware sound file names with variation support."""
     mapping = load_sound_mapping()
     
@@ -131,14 +131,15 @@ def get_context_aware_sound_name(hook_event_name: HookEvent, tool_name: Optional
             logger.debug(f"Notification message mapping: '{notification_sound}'")
             return notification_sound
     
-    # Try context-aware patterns for file operations and bash commands
-    if hook_event_name in [HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE] and tool_name and tool_input:
+    # Only try context-aware patterns for custom voice packs (alfred, jarvis, etc.)
+    custom_voice_packs = ["alfred", "jarvis", "ding"]
+    if voice in custom_voice_packs and hook_event_name in [HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE] and tool_name and tool_input:
         context_sound = _get_context_sound(mapping, tool_name, tool_input)
         if context_sound:
-            logger.debug(f"Context-aware mapping: {hook_event_name} + {tool_name} -> '{context_sound}'")
+            logger.debug(f"Context-aware mapping ({voice}): {hook_event_name} + {tool_name} -> '{context_sound}'")
             return context_sound
         else:
-            logger.warning(f"No context pattern found for {tool_name} with {hook_event_name}, falling back to tool mapping")
+            logger.debug(f"No context pattern found for {tool_name} with {hook_event_name}, falling back to tool mapping")
     
     # Fallback to original tool-based mapping with theme support
     if hook_event_name in [HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE] and tool_name:
@@ -305,7 +306,7 @@ def _select_variation(sounds: SoundVariations) -> str:
     return "task_complete"
 
 # Legacy wrapper for backward compatibility
-def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None) -> str:
+def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_input: Optional[ToolInput] = None, input_data: Optional[HookData] = None, sound_theme: str = "default", voice: str = "alfred") -> str:
     """Legacy wrapper for get_context_aware_sound_name."""
     # Convert string parameters to enums safely
     hook_event_enum = get_hook_event({InputKey.HOOK_EVENT_NAME.value: hook_event_name})
@@ -316,7 +317,7 @@ def get_sound_name(hook_event_name: str, tool_name: Optional[str] = None, tool_i
         logger.warning(f"Unknown hook event: {hook_event_name}, using Stop as fallback")
         hook_event_enum = HookEvent.STOP
     
-    return get_context_aware_sound_name(hook_event_enum, tool_name_enum, tool_input, input_data)
+    return get_context_aware_sound_name(hook_event_enum, tool_name_enum, tool_input, input_data, sound_theme, voice)
 
 def play_system_voice(voice: str, message: str) -> bool:
     """
@@ -640,7 +641,7 @@ def main() -> None:
         
         # Map to sound name using our enhanced context-aware configuration
         if hook_event_name:
-            sound_name = get_context_aware_sound_name(hook_event_name, tool_name, tool_input, input_data, sound_theme)
+            sound_name = get_context_aware_sound_name(hook_event_name, tool_name, tool_input, input_data, sound_theme, voice)
         else:
             # Fallback for unknown events
             logger.warning(f"Unknown hook event, using fallback sound")
