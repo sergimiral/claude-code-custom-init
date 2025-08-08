@@ -1,4 +1,4 @@
-#\!/bin/bash
+#!/bin/bash
 # Cross-platform hook runner for Claude Code
 # Tries different Python execution methods in order of preference
 
