@@ -129,6 +129,7 @@ def parse_notification_config(config: dict) -> dict:
     result = {
         "mode": mode,
         "soundpack": config.get("soundpack", "default"),
+        "voice_soundpack": config.get("voice_soundpack", "alfred"),
         "voice_macos": config.get("voice_macos", "daniel"), 
         "voice_elevenlabs": config.get("voice_elevenlabs", ""),
         "voice_openai": config.get("voice_openai", ""),
@@ -429,11 +430,18 @@ def play_notification(mode: str, config: dict, sound_name: str = "task_complete"
         logger.warning(f"macOS voice '{voice_name}' failed, falling back to sound files")
         mode = "soundpack"  # Fallback
     
-    if mode == "soundpack" or mode == "voice_soundpack":
+    if mode == "soundpack":
         soundpack = config.get("soundpack", "default")
         if try_soundpack(soundpack, sound_name):
             return
         logger.warning(f"Soundpack '{soundpack}' failed, falling back to default sounds")
+        mode = "default"  # Fallback
+    
+    if mode == "voice_soundpack":
+        voice_pack = config.get("voice_soundpack", "alfred")
+        if try_soundpack(voice_pack, sound_name):
+            return
+        logger.warning(f"Voice soundpack '{voice_pack}' failed, falling back to default sounds")
         mode = "default"  # Fallback
     
     # Final fallback: default sounds

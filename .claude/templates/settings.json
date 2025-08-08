@@ -4,8 +4,9 @@
     "deny": []
   },
   "notifications": {
-    "mode": "soundpack",
-    "soundpack": "alfred",
+    "mode": "voice_soundpack",
+    "soundpack": "default",
+    "voice_soundpack": "alfred",
     "voice_macos": "daniel",
     "voice_elevenlabs": "",
     "voice_openai": "",
@@ -15,19 +16,20 @@
     "_comment": "Clean single-mode architecture with graceful fallbacks",
     "_modes": {
       "default": "Simple notification sounds",
-      "soundpack": "Custom sound packs (alfred, jarvis, etc.)",
-      "voice_soundpack": "Sound pack with voice fallback", 
-      "voice_macos": "macOS built-in TTS voices",
-      "voice_elevenlabs": "ElevenLabs AI voices (requires API key)",
-      "voice_openai": "OpenAI TTS voices (requires API key)",
+      "soundpack": "Non-voice sound packs (default, classic, custom)",
+      "voice_soundpack": "Pre-recorded voice packs (alfred, jarvis)", 
+      "voice_macos": "macOS built-in TTS voices (daniel, samantha, alex)",
+      "voice_elevenlabs": "ElevenLabs AI voices (WIP - requires API key)",
+      "voice_openai": "OpenAI TTS voices (WIP - requires API key)",
       "override": "Single sound file for ALL notifications",
       "off": "Silent mode"
     },
     "_config_fields": {
-      "soundpack": "Sound pack name (alfred, jarvis, default, classic)",
-      "voice_macos": "macOS voice name (daniel, samantha, alex, albert)",
-      "voice_elevenlabs": "ElevenLabs voice ID (requires API setup)",
-      "voice_openai": "OpenAI voice name (nova, alloy, echo, etc.)",
+      "soundpack": "Non-voice sound pack name (default, classic, custom)",
+      "voice_soundpack": "Voice pack name (alfred, jarvis)",
+      "voice_macos": "macOS voice name (daniel, samantha, alex, albert, zoe)",
+      "voice_elevenlabs": "ElevenLabs voice ID (WIP - requires API setup)",
+      "voice_openai": "OpenAI voice name (WIP - nova, alloy, echo, etc.)",
       "override_sound_file": "Single sound file for override mode (click.mp3, beep.wav, etc.)"
     },
     "_fallback_chain": "Each mode gracefully falls back to simpler modes if config missing or fails"
